@@ -177,4 +177,3 @@ playlistId = st.text_input("Enter Playlist ID")
 # streamlit widgets
 if st.button('Create Dataset!'):
     token = getToken()
-    getPlaylistItems(token, playlistId)
