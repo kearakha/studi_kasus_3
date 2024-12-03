@@ -10,13 +10,119 @@ import json
 import csv
 from sklearn import preprocessing
 
-getToken()
+client_id = '79ee9e76b763485e8b984e24e2bf50dc'
+client_secret = '257b053cf0e44698ab963b7f8d917837'
+playlistId = '37i9dQZF1DXbrUpGvoi3TS'
 
-getAuthHeader()
+dataset = []
+dataset2 = []
+dataset3 = []
 
-getAudioFeatures()
+def getToken():
+    # gabungkan client_id dan client_secret
+    auth_string = client_id + ':' + client_secret
 
-getPlaylistItems()
+    # encode ke base64
+    auth_b64 = base64.b64encode(auth_string.encode('utf-8'))
+
+    # url untuk mengambil token
+    url = 'https://accounts.spotify.com/api/token'
+
+    # header untuk mengambil token - sesuai dengan guide dari spotify
+    headers = {
+        'Authorization': 'Basic ' + auth_b64.decode('utf-8'),
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+
+    # data untuk mengambil token - sesuai dengan guide dari spotify
+    data = {'grant_type': 'client_credentials'}
+
+    # kirim request POST ke spotify
+    result = post(url, headers=headers, data=data)
+
+    # parse response ke json
+    json_result = json.loads(result.content)
+    token = json_result['access_token']
+
+    # ambil token untuk akses API
+    return token
+
+def getAuthHeader(token):
+    return {'Authorization': 'Bearer ' + token}
+
+def getAudioFeatures(token, trackId):
+    # endpoint untuk akses playlist
+    url = f'https://api.spotify.com/v1/audio-features/{trackId}'
+    # ambil token untuk otorisasi, gunakan sebagai header
+    headers = getAuthHeader(token)
+    result = get(url, headers=headers)  # kirim request GET ke spotify
+    json_result = json.loads(result.content)  # parse response ke json
+
+    # ambil data yang diperlukan dari response
+    audio_features_temp = [
+        json_result['danceability'],
+        json_result['energy'],
+        json_result['key'],
+        json_result['loudness'],
+        json_result['mode'],
+        json_result['speechiness'],
+        json_result['acousticness'],
+        json_result['instrumentalness'],
+        json_result['liveness'],
+        json_result['valence'],
+        json_result['tempo'],
+    ]
+    dataset2.append(audio_features_temp)
+
+def getPlaylistItems(token, playlistId):
+    # endpoint untuk akses playlist
+    url = f'https://api.spotify.com/v1/playlists/{playlistId}/tracks'
+    limit = '&limit=100'  # batas maksimal track yang diambil
+    market = '?market=ID'  # negara yang tempat aplikasi diakses
+    # format data dari track yang diambil
+    fields = '&fields=items%28track%28id%2Cname%2Cartists%2Cpopularity%2C+duration_ms%2C+album%28release_date%29%29%29'
+    url = url+market+fields+limit  # gabungkan semua parameter
+    # ambil token untuk otorisasi, gunakan sebagai header
+    headers = getAuthHeader(token)
+    result = get(url, headers=headers)  # kirim request GET ke spotify
+    json_result = json.loads(result.content)  # parse response ke json
+    print(json_result)
+
+    # ambil data yang diperlukan dari response
+    for i in range(len(json_result['items'])):
+        playlist_items_temp = []
+        playlist_items_temp.append(json_result['items'][i]['track']['id'])
+        playlist_items_temp.append(
+            json_result['items'][i]['track']['name'].encode('utf-8'))
+        playlist_items_temp.append(
+            json_result['items'][i]['track']['artists'][0]['name'].encode('utf-8'))
+        playlist_items_temp.append(
+            json_result['items'][i]['track']['popularity'])
+        playlist_items_temp.append(
+            json_result['items'][i]['track']['duration_ms'])
+        playlist_items_temp.append(
+            int(json_result['items'][i]['track']['album']['release_date'][0:4]))
+        dataset.append(playlist_items_temp)
+
+    # ambil audio features dari semua track di dalam playlist
+    for i in range(len(dataset)):
+        getAudioFeatures(token, dataset[i][0])
+
+    # gabungkan dataset dan dataset2
+    for i in range(len(dataset)):
+        dataset3.append(dataset[i]+dataset2[i])
+
+    print(dataset3)
+    # convert dataset3 into csv
+    with open('dataset.csv', 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["id", "name", "artist", "popularity", "duration_ms", "year", "danceability", "energy", "key", "loudness", "mode",
+                         "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo"])
+        writer.writerows(dataset3)
+
+token = getToken()
+print('access token : '+ token)
+getPlaylistItems(token, playlistId)
 
 def dataProcessing():
     data = pd.read_csv('dataset.csv')
