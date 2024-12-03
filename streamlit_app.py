@@ -122,7 +122,7 @@ def getPlaylistItems(token, playlistId):
 
 token = getToken()
 print('access token : '+ token)
-getPlaylistItems(token, playlistId)
+
 
 def dataProcessing():
     data = pd.read_csv('dataset.csv')
