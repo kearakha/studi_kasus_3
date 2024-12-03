@@ -86,7 +86,7 @@ def getPlaylistItems(token, playlistId):
     headers = getAuthHeader(token)
     result = get(url, headers=headers)  # kirim request GET ke spotify
     json_result = json.loads(result.content)  # parse response ke json
-    print(json_result)
+    #print(json_result)
 
     # ambil data yang diperlukan dari response
     for i in range(len(json_result['items'])):
